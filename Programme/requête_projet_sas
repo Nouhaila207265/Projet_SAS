@@ -1,0 +1,111 @@
+/* transformer la variable taux de réussite en numérique */
+data fusion ;
+	set WORK.fusion_data;
+	taux_reussite=input(taux, percent20.);
+	taux_reussite = (taux_reussite/100);
+run;
+
+PROC CONTENTS DATA=fusion; RUN;
+
+
+/* correlation entre les variables */
+proc corr data = fusion plots=matrix(histogram);
+var Médiane taux_reussite;
+run;
+
+/* régression linéaire */
+proc reg data = fusion alpha=0.05 plots(only)=(diagnostics residuals fitplot observedbypredicted) ;
+	model taux_reussite = Médiane;
+run;
+
+/*tableau analyse de variance : p-value trop petite
+ -> ce qui indique que le modèle explique une grande partie de la variabilité de ma variable cible (taux de réussite)*/
+
+/* R-carrée = indique la proportion de la variabilité que la variable explicative (médiane) va expliquer*/
+/* la variabilité de la médiane explique 1.3% de la variabilité du taux de réussite */
+/* R carré varie entre 0 et 1, plus c'est élevée plus c'est mieux (ce qui n'est pas le cas ici !!!) */
+
+/* test de student: cette variable est-t-elle différente de 0 ? (significative ?) */
+/* p-value petite -> variable significative */
+/* si la médiane de niveau de vie augmente de 0.0005 euros, le taux de réussite augemente d'1 unité */
+
+/*La validation des hypothèses peut être faite avec les graphes générés :LINE
+1. Linéarité = relation linéaire entre la variable cible et explicative,
+si la relation n'a pas une allure linéaire, on doit changer de modèle
+2. indépendence = entre les individus (indépendence des erreurs)
+exemple: on ne peut pas savoir la température future à partir de la température actuelle
+données saisonnières (temporelles) -> on utilise les séries temporelles dans ce cas
+3. Normalité: distribution normale des erreurs
+4. Egalité erreur/variance (variabilité des erreurs) ?
+
+1.
+2. indépendence -> residuals/predicted value -> on cherche une dispersion aléatoire par rapport aux valeurs prédites, pas de modèles précis
+3. normalité -> residual/quantile -> il faut que les points suivent la ligne
+ normalité -> pourcentage/redisual -> histogramme : distribution normale
+4. equal erreur variance -> Résidus/médiane ->
+*/
+
+/*régression multiple */
+proc reg data = fusion alpha=0.05 plots(only)=(diagnostics residuals fitplot observedbypredicted) ;
+	model taux_reussite = Médiane Nombre_ménages_fiscaux Nombre_personnes_dans_ménages_f Inscrits Admis Presents  /;
+run;
+
+/* sélection des variables */
+proc reg data = fusion;
+model taux_reussite = Médiane Nombre_ménages_fiscaux Nombre_personnes_dans_ménages_f Inscrits Admis Presents / selection = forward slentry=0.05;
+run;
+
+proc reg data = fusion alpha=0.05 plots(only)=(diagnostics residuals fitplot observedbypredicted) ;
+	model taux_reussite = Nombre_personnes_dans_ménages_f Admis Presents  /;
+run;
+
+/* Niveau de médiane de vie par déparetements */
+proc sql;
+	create table médiane_dép as
+	select distinct département, mean(Médiane) as moyenne_médiane
+	FROM fusion
+	group by 1  ;
+	order by
+run;
+
+/* Niveau de médiane de vie par secteur d'enseignements */
+proc sql;
+	create table médiane_dép as
+	select distinct secteur, mean(taux_reussite) as taux
+	FROM fusion
+	group by 1  ;
+run;
+
+/* Taux d'inscrits, taux d'admis, taux de présents, taux de réussite, Niveau de vie par départements */
+proc sql;
+	create table synthèse as
+	select 	distinct département, round(mean(Inscrits)) as moy_inscrits,
+	round(mean(Presents)) as moy_presents, round(mean(Admis)) as moy_admis,
+	put(mean(taux_reussite), percentn12.) as moy_reussite, round(mean(Médiane)) as moy_niveau_vie
+	from fusion
+	group by 1
+	order by moy_reussite;
+run;
+
+/*Boxplot: médiane de niveau de vie - secteur d'enseignements */
+proc sgplot data = fusion;
+	vbox Médiane / category= Secteur;
+	title 'Médiane du niveau de vie en fonction des secteurs d enseignements';
+run;
+
+/*Boxplot: taux de réussite - secteur d'enseignements */
+proc sgplot data = fusion;
+	vbox  taux_reussite / category= Secteur;
+	title 'Taux de réussite en fonction des secteurs d enseignements';
+run;
+
+
+
+
+
+
+
+
+
+
+
