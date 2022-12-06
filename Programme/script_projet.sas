@@ -40,7 +40,7 @@ PROC CONTENTS DATA=WORK.RESULTATS_DNB; RUN;
 
 /*---------------------------------------------------------------------------------------*/
 
-/* Tri par clé de jointure (commune_1) sur la table resultats_dnb */	
+/* Tri par clÃ© de jointure (commune_1) sur la table resultats_dnb */	
 PROC SORT
 DATA=resultats_dnb;
 BY commune_1;
@@ -51,15 +51,15 @@ data=resultats_dnb(obs=50);
 run;
 
 DATA resultats_dnb ;
-    SET resultats_dnb (RENAME = ('Taux de réussite'n = TauxReussite)) ;
+    SET resultats_dnb (RENAME = ('Taux de rÃ©ussite'n = TauxReussite)) ;
  RUN ;
 
 data resultats_dnb ;
 	set work.resultats_dnb;
-	Taux_de_réussite = input(TauxReussite, percent10.);
+	Taux_de_rÃ©ussite = input(TauxReussite, percent10.);
 run;
 
-/* Mise en majuscule & tri par clé de jointure (commune) sur la table indicateur_pauvrete */	
+/* Mise en majuscule & tri par clÃ© de jointure (commune) sur la table indicateur_pauvrete */	
 
 data indicateur_pauvrete;
 set indic_pauv;
@@ -81,69 +81,69 @@ proc sql ;
 quit;
 	
 	
-/* Moyenne des résultats au DNB */
+/* Moyenne des rÃ©sultats au DNB */
 
 /*DATA fusion_data ;
-    SET fusion_data (RENAME = ('Taux de réussite'n = TauxReussite)) ;
+    SET fusion_data (RENAME = ('Taux de rÃ©ussite'n = TauxReussite)) ;
 RUN ;*/
 
 data fusion_data ;
 	set work.fusion_data;
-	Taux_de_réussite = input(TauxReussite, percent10.);
+	Taux_de_rÃ©ussite = input(TauxReussite, percent10.);
 run;
 
 proc sql ;
-	select avg(Taux_de_réussite) format = 5.3
+	select avg(Taux_de_rÃ©ussite) format = 5.3
 	from fusion_data;
 quit;
 
-	/** la moyenne nationale des résultats du DNB est de 87,22% pour nos données **/
+	/** la moyenne nationale des rÃ©sultats du DNB est de 87,22% pour nos donnÃ©es **/
 	
 
-/* Moyenne des résultats public/privé */
+/* Moyenne des rÃ©sultats public/privÃ© */
 
 proc sql ;
-	select count(*),"Secteur d'enseignement"n as sec, avg(Taux_de_réussite) format = 5.3
+	select count(*),"Secteur d'enseignement"n as sec, avg(Taux_de_rÃ©ussite) format = 5.3
 	from resultats_dnb 
 	where sec ne "-"
 	group by "Secteur d'enseignement"n;
 quit;
 
-	/** en moyenne, le privé gagne 10 point de % sur le public **/
+	/** en moyenne, le privÃ© gagne 10 point de % sur le public **/
 
 
-/* Corrélation et reg lin. */
+/* CorrÃ©lation et reg lin. */
 	
 proc corr data=fusion_data;
-var "Médiane du niveau vie (€)"n Taux_de_réussite;
+var "MÃ©diane du niveau vie (â¬)"n Taux_de_rÃ©ussite;
 run;
 
 proc gplot data=fusion_data;
-plot Taux_de_réussite*"Médiane du niveau vie (€)"n;
+plot Taux_de_rÃ©ussite*"MÃ©diane du niveau vie (â¬)"n;
 run;
 
 proc reg data=fusion_data corr;
-model Taux_de_réussite="Médiane du niveau vie (€)"n /clb cli clm;
-plot Taux_de_réussite*"Médiane du niveau vie (€)"n /pred;
-plot residual.*"Médiane du niveau vie (€)"n;
+model Taux_de_rÃ©ussite="MÃ©diane du niveau vie (â¬)"n /clb cli clm;
+plot Taux_de_rÃ©ussite*"MÃ©diane du niveau vie (â¬)"n /pred;
+plot residual.*"MÃ©diane du niveau vie (â¬)"n;
 run;
 
 
 /* T Test */
 proc ttest data=fusion_data;
- var Taux_de_réussite;
+ var Taux_de_rÃ©ussite;
  class "Secteur d'enseignement"n;
 run;
 
-/* Pas d'écart significatif des variances selon T Test */
-/* On constate toutefois un écart de presque 9 point de pourcentage entre le public et le privé */
+/* Pas d'Ã©cart significatif des variances selon T Test */
+/* On constate toutefois un Ã©cart de presque 9 point de pourcentage entre le public et le privÃ© */
 
 
 
 
 
-/* 1ère Macro ->  comparaison secteur privé/public 
--> on renvoi taux d’admission moyen par secteur (pourcentage de réussite par villes) */
+/* 1Ã¨re Macro ->  comparaison secteur privÃ©/public 
+-> on renvoi taux dâadmission moyen par secteur (pourcentage de rÃ©ussite par villes) */
 
 data resultats_dnb (drop=Commune);
 set resultats_dnb;
@@ -156,32 +156,32 @@ run;
 /* Macro resultats au dnb par ville */
 
 data resultats_dnb;
-	set resultats_dnb (rename=('Code département'n = numdep));
+	set resultats_dnb (rename=('Code dÃ©partement'n = numdep));
 run;
 
 %macro resultat_dnb_villes; 
 proc sql; 
-	select distinct(commune), numdep, avg(Taux_de_réussite) format = 5.2 as moy_admis
+	select distinct(commune), numdep, avg(Taux_de_rÃ©ussite) format = 5.2 as moy_admis
 	into :commune trimmed 
 	from indicateur_pauvrete as a
 	inner join resultats_dnb as b on a.commune = b.commune_1 
 	where commune = 'REIMS'
 	group by 1;  
 quit; 
-%put &commune &'Code département'n &moy_admis; 
+%put &commune &'Code dÃ©partement'n &moy_admis; 
 %mend; 
 %resultat_dnb_villes;
 
 	/* A Reims, la moyenne d'admission au dnb est de 90.83% */
 
 
-/* 2ème Macro -> niveau de médiane de vie par départements 
-(arguments = département, ça doit nous ressortir niveau de médiane de vie)  */
+/* 2Ã¨me Macro -> niveau de mÃ©diane de vie par dÃ©partements 
+(arguments = dÃ©partement, Ã§a doit nous ressortir niveau de mÃ©diane de vie)  */
 
 
 %macro niv_vie_dep;
 proc sql;
-	select distinct(numdep), avg("Médiane du niveau vie (€)"n) format = 8.2 as med
+	select distinct(numdep), avg("MÃ©diane du niveau vie (â¬)"n) format = 8.2 as med
 	from indicateur_pauvrete as ip
 	inner join resultats_dnb as rb on ip.commune = rb.commune_1
 	where numdep = '051'
@@ -191,4 +191,46 @@ quit;
 %mend;
 %niv_vie_dep;
 
-	/* Dans la Marne (51), le niveau de vie médian est de 20437.06€ */
+	/* Dans la Marne (51), le niveau de vie mÃ©dian est de 20437.06â¬ */
+/* Renommer les variables et remplacer les virgules */
+data fusion_data;
+set FUSION_DATA;
+rename "Secteur d'enseignement"n = secteur;
+rename "Libellé région"n = Region;
+rename "Médiane du niveau vie (€)"n = Mediane;
+rename "Taux de pauvreté-Ensemble (%)"n = Taux_pauvreté;
+rename "Admis Mention bien"n = Mbien;
+rename "Admis Mention très bien"n = MTbien;
+tauxreussite= tranwrd(tauxreussite,',','.');
+run;
+/*Macro pour les taux de pauvreté du plus élevé au plus bas:*/
+
+%macro stats(var1);
+proc sql ;
+select region, round(avg(input(&var1,best.)),0.2) as &var1 
+from fusion_data
+group by 1
+order by 2 desc;
+%MEND stats;
+%stats(Taux_pauvreté).;
+/*Macro pour les taux de pauvreté du plus élevé au plus bas:*/
+
+%macro stats(var1);
+proc sql ;
+select region, round(avg(input(&var1,best.)),0.2) as &var1 
+from fusion_data
+group by 1
+order by 2 desc;
+%MEND stats;
+%stats(Taux_pauvreté).;
+/* Creation d'une macro qui determine le pourcentage des departements ayant plus que mention bien */
+%macro prc_mbien;
+proc sql ;
+select region, avg(Mbien/presents) + avg(MTbien/presents)  as prc into top1
+from fusion_data
+group by 1
+order by 2;
+quit;
+%mend;
+%prc_mbien;
+
